@@ -1,3 +1,3 @@
-# Avi_67J_Board
+# Avi_67J_LedBoard
 
 ## Sensor
