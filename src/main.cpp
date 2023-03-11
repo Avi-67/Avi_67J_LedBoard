@@ -4,6 +4,7 @@
 #include <ICM20948.h>
 #include <S25FL512S.h>
 #include <Analyze.h>
+#include <Serial_COM.h>
 
 #define SCLK  18
 #define MISO1 19
@@ -36,6 +37,7 @@ ICM icm;
 Flash flash;
 SPICREATE::SPICreate SPIC1;
 Analyze analyze;
+SerialCom serialCom;
 
 int tickflag =0;
 int launched_icm =0,launched_lps =0;
@@ -78,11 +80,16 @@ IRAM_ATTR void LED::L_tika(){//mode =0
   led_counter++;
 
   if(led_counter % 1000 == 500){
-    //ledcWrite(redChannel,255);
+    // ledcWrite(redChannel,255);    
+    // ledcWrite(blueChannel,255);
+    // ledcWrite(greenChannel,255);
     digitalWrite(LEDPIN,HIGH);
+
   }
   if(led_counter % 1000 == 0){
-    //ledcWrite(redChannel,0);
+    // ledcWrite(redChannel,0);    
+    // ledcWrite(blueChannel,0);
+    // ledcWrite(greenChannel,0);
     digitalWrite(LEDPIN,LOW);
   }
 }
@@ -144,11 +151,9 @@ IRAM_ATTR void Logging(){
   uint8_t icm_data_buf[12];
   int16_t icm_data[6];
   
-  //TIME
+  //TIME//
   Log::Timestamp = micros();
   Log::Timestamp = Log::Timestamp - Log::log_start_time;
-  // Serial2.println(Log::Timestamp);
-  // Serial2.println();
   for(uint8_t i =0; i< 4; i++){
     Log::flash_buf[32 * Log::log_counter + i] = 0xFF & (Log::Timestamp >> (8*i))%256;
   }
@@ -164,7 +169,7 @@ IRAM_ATTR void Logging(){
   }
   if(launched_icm ==0){// launch Check
       if(analyze.launch_check_Accel(icm.Acceldata)){
-        Serial2.println("Launched");
+        Serial.println("Launched");
         launched_icm =1;
       }  
     }
@@ -173,6 +178,7 @@ IRAM_ATTR void Logging(){
   if(Log::lps_counter % 40 == 0){
     uint8_t lps_data[3];
     lps25.Get(lps_data);
+    Serial.print(Log::lps_counter);
     //Serial2.println("lps");
     for(uint8_t i=0; i<3; i++){//data set
       Log::flash_buf[32*Log::log_counter + 16 + i] = lps_data[i];
@@ -206,32 +212,36 @@ IRAM_ATTR void Logging(){
 
 
 IRAM_ATTR void Sleep_mode(){
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
     switch (cmd)
     {
+    case 'j':
+      Serial.println("return");
+      serialCom.stopCommand();
+      break;
     case 'y':
-      led.led_on =1;
-      //Serial.write('y');
-      Serial2.println("y");
+      led.led_on = 1;
+      serialCom.setCommand('y');
       break;
     case 'n':
-      led.led_on =0;
-      Serial2.println("n");
-      break;
+      led.led_on = 0;
+      serialCom.setCommand('n');
+      break;\
     case 'p':
       Reset();
-      Serial2.println("p");
-      mode =1;
+      serialCom.setCommand('p');
+      mode = 1;
       break;
-    case 'd':
+    case 'd':　//　
       flash.erase();
       delay(100);
       read_addr = 0x000;
-    case 'r':
-      
-      Serial2.println("r");
+      serialCom.setCommand('d');
+    case 'r': // 
+      serialCom.setCommand('r');
       Read_Flash();
       break;
     default:
@@ -252,22 +262,27 @@ IRAM_ATTR void Sleep_mode(){
 }
 
 IRAM_ATTR void Wait_mode(){
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
     switch (cmd)
     {
+    case 'j':
+      Serial.println("return");
+      serialCom.stopCommand();
+      break;
     case 'l':
       Log::log_start_time = micros();
-      Serial2.println("l");
+      serialCom.setCommand('l');
       mode = 2;
       break;
     case 'd':
-      Serial2.println("d");
+      serialCom.setCommand('d');
       mode = 3;
       break;
     case 's':
-      Serial2.println("s");
+      serialCom.setCommand('s');
       mode =0;
     default:
       break;
@@ -281,34 +296,49 @@ IRAM_ATTR void flight_mode(){
   }
   
   if(analyze.status == 0){ // before launch
-    if(launched_icm ==1 || launched_lps ==1){
-    if(launched_icm == 1){
-      analyze.start_time = micros() - 1000000;
-      Serial2.print("launched_ICME");
+    Serial.print(icm.Acceldata);
+    Serial.print(",/t");
+    if(launched_icm == 1 || launched_lps == 1){
+      if(launched_icm == 1){
+        analyze.start_time = micros() - 1000000;
+        Serial.println("launched_ICM");
       }
-    else{
-      analyze.start_time = micros() - 2000000;
+      else{
+        analyze.start_time = micros() - 2000000;
+        Serial.println("launched_LPS");
       }
-    analyze.status = 1;
+      analyze.status = 1;
     }
   }
   else if(analyze.status == 1){// flight
     flight_Timebuff = micros();
     flight_Timebuff -= analyze.start_time;
+    Serial.println(flight_Timebuff);
+    led.L_tika();
     if(flight_Timebuff >= Falling_Time){//if landed
       analyze.status = 2;
       landed_start_time =micros();
       mode = 4; //
     }
   }
-  //Serial2.println(mode);
-  // char cmd;
-  
-  if(Serial2.available() && Serial2.read() == 's'){
-    Serial2.println("stop logging");
-    Serial2.println(Log::flash_addr);
-    mode = 0;
+  serialCom.sendSerial2();
+  char cmd;
+  if(Serial2.available()){
+    cmd = Serial2.read();
+    switch (cmd)
+    {
+    case 'j':
+      Serial.println("return");
+      serialCom.stopCommand();
+      break;
+    case 's':
+      serialCom.setCommand('s');
+      mode = 0;
+    default:
+      break;
+    }
   }
+ 
 }
 
 IRAM_ATTR void landed_mode(){
@@ -320,19 +350,24 @@ IRAM_ATTR void landed_mode(){
   if(led_Time <= landed_Timebuff <= led_ON_Time){
     led.LED_pwm();
   }
-
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
     switch (cmd)
     {
+    case 'j':
+      Serial.println("return");
+      serialCom.stopCommand();
+      break;
     case 's':
-      Serial2.write('s');
+      serialCom.setCommand('s');
       mode = 0;
     default:
       break;
     }
   }
+  
 }
 
 
@@ -371,13 +406,11 @@ hw_timer_t * timer = NULL;
 void setup() {
   delay(100);
   Serial.begin(115200);
-  //Serial2.begin(115200);
   delay(100);
-  //Serial2.end();
+  Serial2.begin(9600);
+  while (!Serial2);
   delay(100);
-  Serial2.begin(9600,SERIAL_8N1,RX,TX,false,256);
-  delay(100);
-  Serial2.println("test");
+  Serial.println("test");  
   SPIC1.begin(VSPI,SCLK,MISO1,MOSI1);
   delay(100);
   
@@ -415,20 +448,20 @@ void setup() {
   timer = timerBegin(0,80,true);
   timerAttachInterrupt(timer, &tick, true);
   delay(1000);
-  Serial.print("timer set");
+  Serial.println("timer set");
   timerAlarmWrite(timer, 1000, true); 
   timerAlarmEnable(timer);
   delay(3000);
+  serialCom.setup();
+  serialCom.setCommand('w'); // wake up
   Serial.println("finish begin");
 
-  //flash.erase();
-
-  
 }
 
 void loop(){ 
 
   if(tickflag >0){
+    serialCom.sendSerial2();
     MainWork();
 
     tickflag = 0;
