@@ -235,7 +235,7 @@ IRAM_ATTR void Sleep_mode(){
       serialCom.setCommand('p');
       mode = 1;
       break;
-    case 'd':　//　
+    case 'd':
       flash.erase();
       delay(100);
       read_addr = 0x000;

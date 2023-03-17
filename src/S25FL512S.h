@@ -84,7 +84,7 @@ void Flash::erase()
     while (readStatus != 0)
     {
         readStatus = flashSPI->readByte(CMD_RDSR, deviceHandle);
-        Serial2.print(",");
+        Serial.print(",");
         delay(100);
     }
     Serial2.println("Bulk Erased");
