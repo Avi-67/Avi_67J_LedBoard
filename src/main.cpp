@@ -238,12 +238,8 @@ IRAM_ATTR void Sleep_mode(){
       mode = 1;
       break;
     case 'd':
-      xTaskCreatePinnedToCore(serialCom.sendTask, "sendTask", 8192, NULL, 2, &taskHandle, 0);
-      flash.erase();
-      vTaskDelete(taskHandle);
-      delay(100);
-      read_addr = 0x000;
       serialCom.setCommand('d');
+      mode = 3;
     case 'r': // 
       serialCom.setCommand('r');
       Read_Flash();
@@ -284,9 +280,6 @@ IRAM_ATTR void Wait_mode(){
     case 'd':
       serialCom.setCommand('d');
       mode = 3;
-      xTaskCreatePinnedToCore(serialCom.sendTask, "sendTask", 8192, NULL, 2, &taskHandle, 0);
-      flash.erase();
-      vTaskDelete(taskHandle);
       break;
     case 's':
       serialCom.setCommand('s');
@@ -394,7 +387,9 @@ IRAM_ATTR void MainWork(){
     flight_mode(); // launch →　landing
     break;
   case 3://delete_mode
+    xTaskCreatePinnedToCore(serialCom.sendTask, "sendTask", 8192, NULL, 2, &taskHandle, 0);
     flash.erase();
+    vTaskDelete(taskHandle);
     mode = 0;
   case 4:
     landed_mode();
