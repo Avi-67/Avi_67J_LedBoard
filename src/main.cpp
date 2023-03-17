@@ -47,6 +47,8 @@ uint8_t in_task = 0;
 uint8_t mode = 0;
 uint8_t ICM_WhoAmI = 0, LPS_WhoAmI =0;
 
+xTaskHandle xlogHandle;
+TaskHandle_t taskHandle;
 
 //For logging
 namespace Log{
@@ -212,7 +214,7 @@ IRAM_ATTR void Logging(){
 
 
 IRAM_ATTR void Sleep_mode(){
-  //serialCom.sendSerial2();
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -236,7 +238,9 @@ IRAM_ATTR void Sleep_mode(){
       mode = 1;
       break;
     case 'd':
+      xTaskCreatePinnedToCore(serialCom.sendTask, "sendTask", 8192, NULL, 2, &taskHandle, 0);
       flash.erase();
+      vTaskDelete(taskHandle);
       delay(100);
       read_addr = 0x000;
       serialCom.setCommand('d');
@@ -262,7 +266,7 @@ IRAM_ATTR void Sleep_mode(){
 }
 
 IRAM_ATTR void Wait_mode(){
-  //serialCom.sendSerial2();
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -280,6 +284,9 @@ IRAM_ATTR void Wait_mode(){
     case 'd':
       serialCom.setCommand('d');
       mode = 3;
+      xTaskCreatePinnedToCore(serialCom.sendTask, "sendTask", 8192, NULL, 2, &taskHandle, 0);
+      flash.erase();
+      vTaskDelete(taskHandle);
       break;
     case 's':
       serialCom.setCommand('s');
@@ -321,7 +328,7 @@ IRAM_ATTR void flight_mode(){
       mode = 4; //
     }
   }
-  //serialCom.sendSerial2();
+  serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -350,7 +357,8 @@ IRAM_ATTR void landed_mode(){
   if(led_Time <= landed_Timebuff <= led_ON_Time){
     led.LED_pwm();
   }
- // serialCom.sendSerial2();
+  serialCom.sendSerial2();
+
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -373,7 +381,7 @@ IRAM_ATTR void landed_mode(){
 
 
 IRAM_ATTR void MainWork(){
-  
+  serialCom.sendTask();
   switch (mode)
   {
   case 0:
@@ -461,7 +469,6 @@ void setup() {
 void loop(){ 
 
   if(tickflag >0){
-    serialCom.sendSerial2();
     MainWork();
 
     tickflag = 0;
