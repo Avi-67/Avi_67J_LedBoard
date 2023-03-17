@@ -381,7 +381,7 @@ IRAM_ATTR void landed_mode(){
 
 
 IRAM_ATTR void MainWork(){
-  serialCom.sendTask();
+  serialCom.sendSerial2();
   switch (mode)
   {
   case 0:

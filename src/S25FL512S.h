@@ -87,7 +87,7 @@ void Flash::erase()
         Serial.print(",");
         delay(100);
     }
-    Serial2.println("Bulk Erased");
+    Serial.println("Bulk Erased");
     return;
 }
 void Flash::write(uint32_t addr, uint8_t *tx)
