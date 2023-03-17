@@ -70,18 +70,18 @@ void SerialCom::stopCommand()
 // xTaskCreatePinnedToCore(Log67Serial1.sendTask, "sendTask1", 8192, NULL, 2, &taskHandle, 0);
 void SerialCom::sendTask(void *pvParameters)
 {
-    SerialCom Log67Serial2;
-    Log67Serial2.setup();
-    Log67Serial2.setCommand(Log67Serial2.commandDelete);
+    SerialCom serialCom;
+    serialCom.setup();
+    serialCom.setCommand(serialCom.commandDelete);
     while (1)
     {
-        Log67Serial2.sendSerial2();
+        serialCom.sendSerial2();
 
         char pre3 = Serial2.read();
-        if (pre3 == Log67Serial2.commandReturn) // 'j'
+        if (pre3 == serialCom.commandReturn) // 'j'
         {
             Serial.println("return text2");
-            Log67Serial2.sendFlag = false;
+            serialCom.sendFlag = false;
         }
         vTaskDelay(1);
     }
