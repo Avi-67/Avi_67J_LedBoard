@@ -212,7 +212,7 @@ IRAM_ATTR void Logging(){
 
 
 IRAM_ATTR void Sleep_mode(){
-  serialCom.sendSerial2();
+  //serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -262,7 +262,7 @@ IRAM_ATTR void Sleep_mode(){
 }
 
 IRAM_ATTR void Wait_mode(){
-  serialCom.sendSerial2();
+  //serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -321,7 +321,7 @@ IRAM_ATTR void flight_mode(){
       mode = 4; //
     }
   }
-  serialCom.sendSerial2();
+  //serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
@@ -350,7 +350,7 @@ IRAM_ATTR void landed_mode(){
   if(led_Time <= landed_Timebuff <= led_ON_Time){
     led.LED_pwm();
   }
-  serialCom.sendSerial2();
+ // serialCom.sendSerial2();
   char cmd;
   if(Serial2.available()){
     cmd = Serial2.read();
